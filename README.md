@@ -1,5 +1,5 @@
 ## Unity-Inspired Safe Zone
-![Screenshot of the Safe Zone in FiveM](https://github.com/user-attachments/assets/562d3936-7614-4550-a2f8-ed6cb5a215dc)
+![FiveM_b3095_GTAProcess 2025-01-21 20-46-49](https://github.com/user-attachments/assets/e300c60d-8bb5-4ff2-b760-0e5d14b0877b)
 
 **Originally developed in Freeline, now available here.**
 
