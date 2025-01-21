@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Safezone</title>
+  <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
+  <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@100;300;400;700;900&display=swap" rel="stylesheet"/>
+</head>
+<body class="relative min-h-screen bg-transparent">
+  <aside 
+    class="protected-indicator hidden fixed bottom-4 left-1/2 -translate-x-1/2 flex items-center bg-black/80 text-white px-5 py-2 rounded-md text-base z-50transition ease-linear duration-300 hover:bg-black hover:-translate-y-0.5" aria-label="Protected Status">
+    <ion-icon name="shield-checkmark-outline" class="mr-3 text-lime-300 text-lg font-bold" aria-hidden="true"></ion-icon>
+    <span class="protected-indicator__text font-bold"></span>
+  </aside>
+  <script>window.addEventListener("message",function(e){const t=e.data;if("nui"===t.type){const e=document.querySelector(".protected-indicator"),n=document.querySelector(".protected-indicator__text");t.localization&&(n.textContent=t.localization),t.show?(e.classList.remove("hidden"),e.classList.add("flex")):(e.classList.remove("flex"),e.classList.add("hidden"))}});</script>
+  <style> body {font-family: "Lato", sans-serif;}</style>
+</body>
+</html>
