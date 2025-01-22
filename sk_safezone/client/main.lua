@@ -1,142 +1,126 @@
 if not lib then print("^1[ERROR] Overextended (ox_lib) is not loaded! Make sure it is installed and referenced in fxmanifest.lua.^0") return end
 
 local Config = require('config')
+
+---@param entity number The entity handle (e.g., a vehicle or a ped)
+---@param center vector3 The center coordinates of the safe zone
+---@param radius number The radius of the safe zone
+local function IsEntityInZone(entity, center, radius)
+    local coords = GetEntityCoords(entity)
+    return #(coords - center) <= radius
+end
+
+---@param ent1 number Entity 1
+---@param ent2 number Entity 2
+local function DisableCollisionsThisFrame(ent1, ent2)
+    if DoesEntityExist(ent1) and DoesEntityExist(ent2) then
+        SetEntityNoCollisionEntity(ent1, ent2, true)
+        SetEntityNoCollisionEntity(ent2, ent1, true)
+    end
+end
+
+---@param entity number The entity to modify
+---@param alpha number The alpha value (0-255)
+local function SetEntityAlphaSafely(entity, alpha)
+    if DoesEntityExist(entity) then
+        SetEntityAlpha(entity, alpha, false)
+    end
+end
+
 local inSafeZone = {}
 
----@param entity1 number
----@param entity2 number
-local function DisableCollisionsThisFrame(entity1, entity2)
-    SetEntityNoCollisionEntity(entity1, entity2, true)
-    SetEntityNoCollisionEntity(entity2, entity1, true)
-end
-
----@param entity number
----@param zoneCoords vector3
----@param zoneRadius number
----@return boolean
-local function IsEntityInZone(entity, zoneCoords, zoneRadius)
-    local entityCoords = GetEntityCoords(entity)
-    local distance = #(zoneCoords - entityCoords)
-    return distance < zoneRadius
-end
-
-for zoneName, zoneData in pairs(Config.Zones) do
-    lib.zones.sphere({
-        name   = zoneName,
-        coords = zoneData.coords,
-        radius = zoneData.radius,
-        debug  = false,
-
-        inside = function(self)
-            local playerPed = cache.ped
-
-            DrawMarker(
-                Config.Settings.markerType,
-                self.coords.x,
-                self.coords.y,
-                self.coords.z - 10.0,
-                0.0, 0.0, 0.0,
-                0.0, 0.0, 0.0,
-                self.radius * 2,
-                self.radius * 2,
-                Config.Settings.markerHeight,
-                Config.Settings.markerColor[1],
-                Config.Settings.markerColor[2],
-                Config.Settings.markerColor[3],
-                Config.Settings.markerColor[4],
-                false, false, 2, false, nil, nil, false
-            )
-
-            local vehiclePool = GetGamePool('CVehicle')
-            for i = 1, #vehiclePool do
-                local vehicle = vehiclePool[i]
-                if IsEntityInZone(vehicle, self.coords, self.radius) then
-                    DisableCollisionsThisFrame(playerPed, vehicle)
-                    SetEntityAlpha(vehicle, 200, false)
-                end
-            end
-
-            local playerPool = GetGamePool('CPed')
-            for i = 1, #playerPool do
-                local ped = playerPool[i]
-                if ped ~= playerPed and IsEntityInZone(ped, self.coords, self.radius) then
-                    DisableCollisionsThisFrame(playerPed, ped)
-                    SetEntityAlpha(ped, 200, false)
-                end
-            end
-        end,
-
-        onEnter = function(self)
-            local playerPed = cache.ped
-            local zone = self.name
-
-            inSafeZone[zone] = true
-            PlaySoundFrontend(-1, "FLIGHT_SCHOOL_LESSON_PASSED", "HUD_AWARDS", true)
-
-            SendNUIMessage({
-                type = 'nui',
-                localization = Config.Localization.protected_text,
-                show = true
-            })
-
-            SetPlayerInvincible(PlayerId(), true)
-            DisablePlayerFiring(playerPed, true)
-        end,
-
-        onExit = function(self)
-            local playerPed = cache.ped
-            local zone = self.name
-
-            inSafeZone[zone] = false
-            PlaySoundFrontend(-1, "COLLECTED", "HUD_AWARDS", true)
-
-            local vehiclePool = GetGamePool('CVehicle')
-            for i = 1, #vehiclePool do
-                SetEntityAlpha(vehiclePool[i], 255, false)
-            end
-
-            local playerPool = GetGamePool('CPed')
-            for i = 1, #playerPool do
-                SetEntityAlpha(playerPool[i], 255, false)
-            end
-
-            SetPlayerInvincible(PlayerId(), false)
-            DisablePlayerFiring(playerPed, false)
-
-            SendNUIMessage({
-                type = 'nui',
-                localization = Config.Localization.protected_text,
-                show = false
-            })
-        end,
-    })
-end
-
-AddEventHandler('onResourceStop', function(resourceName)
-    if (GetCurrentResourceName() ~= resourceName) then return end
-
-    local playerPed = PlayerPedId()
-    SetPlayerInvincible(PlayerId(), false)
-
-    local vehiclePool = GetGamePool('CVehicle')
-    for i = 1, #vehiclePool do
-        local vehicle = vehiclePool[i]
-        SetEntityNoCollisionEntity(playerPed, vehicle, false)
-        SetEntityNoCollisionEntity(vehicle, playerPed, false)
-        SetEntityAlpha(vehicle, 255, false)
+CreateThread(function()
+    for zoneName, zoneData in pairs(Config.Zones) do
+        inSafeZone[zoneName] = false
     end
 
-    local playerPool = GetGamePool('CPed')
-    for i = 1, #playerPool do
-        local ped = playerPool[i]
-        SetEntityNoCollisionEntity(playerPed, ped, false)
-        SetEntityNoCollisionEntity(ped, playerPed, false)
-        SetEntityAlpha(ped, 255, false)
-    end
+    while true do
+        local sleep = 500
+        local playerPed = PlayerPedId()
+        local playerPos = GetEntityCoords(playerPed)
 
-    SendNUIMessage({
-        type = 'nui',
-        localization = Config.Localization.protected_text,
-        show = false
-    })
+        for zoneName, zoneData in pairs(Config.Zones) do
+            local distance = #(playerPos - zoneData.coords)
+            local isInside = distance <= zoneData.radius
+
+            if isInside and not inSafeZone[zoneName] then
+                inSafeZone[zoneName] = true
+                PlaySoundFrontend(-1, "FLIGHT_SCHOOL_LESSON_PASSED", "HUD_AWARDS", true)
+                SendNUIMessage({
+                    type = "nui",
+                    localization = Config.MiniUi.protected_text,
+                    positioning = Config.MiniUi.dpositioning,
+                    show = true
+                })
+            elseif isInside and inSafeZone[zoneName] then
+                sleep = 0
+
+                DrawMarker(
+                    Config.Settings.markerType,
+                    zoneData.coords.x, zoneData.coords.y, zoneData.coords.z - 10.0,
+                    0.0, 0.0, 0.0,
+                    0.0, 0.0, 0.0,
+                    zoneData.radius * 2, zoneData.radius * 2, Config.Settings.markerHeight,
+                    Config.Settings.markerColor[1], Config.Settings.markerColor[2], Config.Settings.markerColor[3], Config.Settings.markerColor[4],
+                    false, false, 2, false, nil, nil, false
+                )
+
+                DisablePlayerFiring(playerPed, true)
+                SetEntityInvincible(playerPed, true)
+
+                local vehiclePool = GetGamePool('CVehicle')
+                local pedPool = GetGamePool('CPed')
+
+                for _, ped in ipairs(pedPool) do
+                    if ped ~= playerPed and IsEntityInZone(ped, zoneData.coords, zoneData.radius) then
+                        DisableCollisionsThisFrame(playerPed, ped)
+                        SetEntityAlphaSafely(ped, 200)
+                    end
+                end
+
+                for _, vehicle in ipairs(vehiclePool) do
+                    if IsEntityInZone(vehicle, zoneData.coords, zoneData.radius) then
+                        DisableCollisionsThisFrame(playerPed, vehicle)
+                        SetEntityAlphaSafely(vehicle, 200)
+                    end
+                end
+
+                for i, vehicle1 in ipairs(vehiclePool) do
+                    if IsEntityInZone(vehicle1, zoneData.coords, zoneData.radius) then
+                        for j, vehicle2 in ipairs(vehiclePool) do
+                            if i ~= j and IsEntityInZone(vehicle2, zoneData.coords, zoneData.radius) then
+                                DisableCollisionsThisFrame(vehicle1, vehicle2)
+                                SetEntityAlphaSafely(vehicle2, 200)
+                            end
+                        end
+                    end
+                end
+            elseif not isInside and inSafeZone[zoneName] then
+                inSafeZone[zoneName] = false
+                PlaySoundFrontend(-1, "COLLECTED", "HUD_AWARDS", true)
+
+                DisablePlayerFiring(playerPed, false)
+                SetEntityInvincible(playerPed, false)
+
+                local vehiclePool = GetGamePool('CVehicle')
+                for _, vehicle in ipairs(vehiclePool) do
+                    SetEntityAlphaSafely(vehicle, 255)
+                end
+
+                local pedPool = GetGamePool('CPed')
+                for _, ped in ipairs(pedPool) do
+                    SetEntityAlphaSafely(ped, 255)
+                end
+
+                SendNUIMessage({
+                    type = "nui",
+                    localization = Config.MiniUi.protected_text,
+                    positioning = Config.MiniUi.dpositioning,
+                    show = false
+                })
+            end
+        end
+
+        Wait(sleep)
+    end
 end)
