@@ -68,6 +68,21 @@ CreateThread(function()
                 DisablePlayerFiring(playerPed, true)
                 SetEntityInvincible(playerPed, true)
 
+                
+                DisableControlAction(0, 24, true)
+                DisableControlAction(0, 257, true)
+                DisableControlAction(0, 25, true)
+                DisableControlAction(0, 263, true)
+                DisableControlAction(0, 45, true)
+                DisableControlAction(0, 47, true)
+                DisableControlAction(0, 264, true)
+                DisableControlAction(0, 257, true)
+                DisableControlAction(0, 140, true)
+                DisableControlAction(0, 141, true)
+                DisableControlAction(0, 142, true)
+                DisableControlAction(0, 143, true)
+
+
                 local vehiclePool = GetGamePool('CVehicle')
                 local pedPool = GetGamePool('CPed')
 
