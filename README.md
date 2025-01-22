@@ -9,4 +9,9 @@ Feel free to tweak the code as needed.
 **Icon Library:**
 [Ionicons](https://ionic.io/ionicons)
 
+# Changelog
+**22.2.2025**
+> Code updated, now collision sync work perfectly also created better config about tailwind positioning.<br>
+> HTML Updated, obfuscated. 
+
 # ⚠️ SEND POSSIBLE BUGS IN DISCORD
