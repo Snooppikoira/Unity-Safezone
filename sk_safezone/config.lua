@@ -14,7 +14,9 @@ return {
             radius = 25.0,
         },
     },
-    Localization = {
-        protected_text = "Protected"
-    }
+    MiniUi = {
+        protected_text = "Protected",
+        dpositioning = "bottom-4 left-4", 
+        -- More about positioning | https://tailwindcss.com/docs/top-right-bottom-left
+    },
 }
